@@ -10,6 +10,7 @@ include { paramsSummaryMap       } from 'plugin/nf-validation'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_nfcoredevtest_pipeline'
+include { FASTP } from '../modules/nf-core/fastp/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -26,6 +27,22 @@ workflow NFCOREDEVTEST {
 
     ch_versions = Channel.empty()
     ch_multiqc_files = Channel.empty()
+
+
+//
+// MODULE: FASTP
+//
+ch_adapters = params.adapters ? params.adapters : []
+FASTP (
+    ch_samplesheet,
+    ch_adapters,
+    params.discard_trimmed_pass,
+    params.save_trimmed_fail,
+    params.save_merged
+)
+ch_multiqc_files = ch_multiqc_files.mix(FASTP.out.json.collect{it[1]}.ifEmpty([]))
+ch_versions      = ch_versions.mix(FASTP.out.versions.first())
+
 
     //
     // MODULE: Run FastQC
